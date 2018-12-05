@@ -1,0 +1,21 @@
+version: 0.5
+
+networks:
+  local:
+    hosts:
+      - localhost
+
+commands:
+  render:
+    desc: Render
+    template:
+      src: example/test.tpl
+      dst: /tmp/test
+  show:
+    desc: Show result
+    run: cat /tmp/test
+
+targets:
+  all:
+    - render
+    - show

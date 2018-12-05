@@ -5,6 +5,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"bytes"
+	"text/template"
 
 	"github.com/pkg/errors"
 )
@@ -46,6 +48,54 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]*
 			task.Clients = []Client{clients[0]}
 			tasks = append(tasks, &task)
 		} else if cmd.Serial > 0 {
+			// Each "serial" task client group is executed sequentially.
+			for i := 0; i < len(clients); i += cmd.Serial {
+				j := i + cmd.Serial
+				if j > len(clients) {
+					j = len(clients)
+				}
+				copy := task
+				copy.Clients = clients[i:j]
+				tasks = append(tasks, &copy)
+			}
+		} else {
+			task.Clients = clients
+			tasks = append(tasks, &task)
+		}
+	}
+
+	if cmd.Template.Src != "" && cmd.Template.Dst != "" {
+		var buffer bytes.Buffer
+
+		fmt.Printf("Template %v encountered\n", cmd.Template)
+
+		f, err := os.Open(cmd.Template.Src)
+		if err != nil {
+			return nil, errors.Wrap(err, "can't open template")
+		}
+
+		data, err := ioutil.ReadAll(f)
+		if err != nil {
+			return nil, errors.Wrap(err, "can't open template")
+		}
+
+		/* TODO Render template for each client */
+		tmpl, err := template.New("tpl").Parse(string(data))
+		if err != nil {
+			return nil, errors.Wrap(err, "can't parse template")
+		}
+
+		err = tmpl.Execute(&buffer, nil /*context*/)
+		if err != nil {
+			return nil, errors.Wrap(err, "can't parse template")
+		}
+
+		task := Task{
+			Run: "cat > " + cmd.Template.Dst,
+			Input: &buffer,
+		}
+
+		if cmd.Serial > 0 {
 			// Each "serial" task client group is executed sequentially.
 			for i := 0; i < len(clients); i += cmd.Serial {
 				j := i + cmd.Serial
