@@ -151,7 +151,7 @@ func (c *SSHClient) ConnectWith(host string, dialer SSHDialFunc) error {
 }
 
 // Run runs the task.Run command remotely on c.host.
-func (c *SSHClient) Run(task *Task) error {
+func (c *SSHClient) Run(task Task) error {
 	if c.running {
 		return fmt.Errorf("Session already running")
 	}
@@ -179,7 +179,7 @@ func (c *SSHClient) Run(task *Task) error {
 		return err
 	}
 
-	if task.TTY {
+	if task.TTY() {
 		// Set up terminal modes
 		modes := ssh.TerminalModes{
 			ssh.ECHO:          0,     // disable echoing
@@ -193,7 +193,7 @@ func (c *SSHClient) Run(task *Task) error {
 	}
 
 	// Start the remote command.
-	if err := sess.Start(c.env + task.Run); err != nil {
+	if err := sess.Start(c.env + task.Run()); err != nil {
 		return ErrTask{task, err.Error()}
 	}
 

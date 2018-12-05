@@ -123,7 +123,7 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 			var wg sync.WaitGroup
 
 			// Run tasks on the provided clients.
-			for _, c := range task.Clients {
+			for _, c := range task.Clients() {
 				var prefix string
 				var prefixLen int
 				if sup.prefix {
@@ -164,10 +164,10 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 			}
 
 			// Copy over task's STDIN.
-			if task.Input != nil {
+			if task.Input() != nil {
 				go func() {
 					writer := io.MultiWriter(writers...)
-					_, err := io.Copy(writer, task.Input)
+					_, err := io.Copy(writer, task.Input())
 					if err != nil && err != io.EOF {
 						fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, "copying STDIN failed"))
 					}
@@ -188,7 +188,7 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 						if !ok {
 							return
 						}
-						for _, c := range task.Clients {
+						for _, c := range task.Clients() {
 							err := c.Signal(sig)
 							if err != nil {
 								fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, "sending signal failed"))
@@ -202,7 +202,7 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 			wg.Wait()
 
 			// Make sure each client finishes the task, return on failure.
-			for _, c := range task.Clients {
+			for _, c := range task.Clients() {
 				wg.Add(1)
 				go func(c Client) {
 					defer wg.Done()

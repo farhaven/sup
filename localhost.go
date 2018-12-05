@@ -31,14 +31,14 @@ func (c *LocalhostClient) Connect(_ string) error {
 	return nil
 }
 
-func (c *LocalhostClient) Run(task *Task) error {
+func (c *LocalhostClient) Run(task Task) error {
 	var err error
 
 	if c.running {
 		return fmt.Errorf("Command already running")
 	}
 
-	cmd := exec.Command("bash", "-c", c.env+task.Run)
+	cmd := exec.Command("bash", "-c", c.env+task.Run())
 	c.cmd = cmd
 
 	c.stdout, err = cmd.StdoutPipe()
