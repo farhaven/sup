@@ -8,6 +8,7 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/alessio/shellescape"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -44,7 +45,7 @@ type TemplateTask struct {
 }
 
 func (t *TemplateTask) Run() string {
-	return "cat > " + t.dst
+	return "cat > " + shellescape.Quote(t.dst)
 }
 
 func (t *TemplateTask) InputForClient(c Client) (io.Reader, error) {
