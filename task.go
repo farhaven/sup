@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 )
 
 // Task represents a set of commands to be run.
@@ -38,6 +39,7 @@ func (t *CommandTask) TTY() bool {
 type TemplateTask struct {
 	tmpl *template.Template
 	dst string
+	vars map[string]interface{}
 	clients []Client
 }
 
@@ -50,7 +52,7 @@ func (t *TemplateTask) InputForClient(c Client) (io.Reader, error) {
 	context := struct{
 		Client Client
 		Vars map[string]interface{}
-	}{c, nil}
+	}{c, t.vars}
 	if err := t.tmpl.Execute(&buffer, context); err != nil {
 		return nil, err
 	}
@@ -117,10 +119,6 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]T
 	}
 
 	if cmd.Template.Src != "" && cmd.Template.Dst != "" {
-		var buffer bytes.Buffer
-
-		fmt.Printf("Template %v encountered\n", cmd.Template)
-
 		f, err := os.Open(cmd.Template.Src)
 		if err != nil {
 			return nil, errors.Wrap(err, "can't open template")
@@ -131,20 +129,31 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]T
 			return nil, errors.Wrap(err, "can't open template")
 		}
 
-		/* TODO Render template for each client */
 		tmpl, err := template.New("tpl").Parse(string(data))
 		if err != nil {
 			return nil, errors.Wrap(err, "can't parse template")
 		}
 
-		err = tmpl.Execute(&buffer, nil /*context*/)
-		if err != nil {
-			return nil, errors.Wrap(err, "can't parse template")
+		vars := make(map[string]interface{})
+		if cmd.Template.Vars != "" {
+			varf, err := os.Open(cmd.Template.Vars)
+			if err != nil {
+				return nil, errors.Wrap(err, "can't read variables")
+			}
+			vardata, err := ioutil.ReadAll(varf)
+			if err != nil {
+				return nil, errors.Wrap(err, "can't read variables")
+			}
+
+			if err = yaml.Unmarshal(vardata, &vars); err != nil {
+				return nil, errors.Wrap(err, "can't parse variables")
+			}
 		}
 
 		task := TemplateTask{
 			tmpl: tmpl,
 			dst: cmd.Template.Dst,
+			vars: vars,
 		}
 
 		if cmd.Serial > 0 {

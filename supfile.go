@@ -156,6 +156,7 @@ type Upload struct {
 type Template struct {
 	Src string `yaml:"src"`
 	Dst string `yaml:"dst"`
+	Vars string `yaml:"vars"`
 }
 
 // EnvVar represents an environment variable

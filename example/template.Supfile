@@ -11,6 +11,7 @@ commands:
     template:
       src: example/test.tpl
       dst: /tmp/test
+      vars: example/test.yml
   show:
     desc: Show result
     run: cat /tmp/test

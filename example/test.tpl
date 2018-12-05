@@ -1,3 +1,4 @@
 Here be dragons
 
-{{ .Client }}
+Client: {{ .Client }}
+Vars: {{ .Vars }}
