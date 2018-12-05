@@ -164,22 +164,35 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 			}
 
 			// Copy over task's STDIN.
-			input, err := task.Input()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, "input failed"))
-			}
-			if input != nil {
-				go func() {
-					writer := io.MultiWriter(writers...)
-					_, err := io.Copy(writer, input)
-					if err != nil && err != io.EOF {
-						fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, "copying STDIN failed"))
+			if commandTask, ok := task.(*CommandTask); ok {
+				if commandTask.Input() != nil {
+					go func() {
+						writer := io.MultiWriter(writers...)
+						_, err := io.Copy(writer, commandTask.Input())
+						if err != nil && err != io.EOF {
+							fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, "copying STDIN failed"))
+						}
+						// TODO: Use MultiWriteCloser (not in Stdlib), so we can writer.Close() instead?
+						for _, c := range clients {
+							c.WriteClose()
+						}
+					}()
+				}
+			} else if templateTask, ok := task.(*TemplateTask); ok {
+				for _, c := range clients {
+					input, err := templateTask.InputForClient(c)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, "can't render template"))
+						continue
 					}
-					// TODO: Use MultiWriteCloser (not in Stdlib), so we can writer.Close() instead?
-					for _, c := range clients {
+					go func() {
+						_, err := io.Copy(c.Stdin(), input)
+						if err != nil && err != io.EOF {
+							fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, "copying STDIN failed"))
+						}
 						c.WriteClose()
-					}
-				}()
+					}()
+				}
 			}
 
 			// Catch OS signals and pass them to all active clients.

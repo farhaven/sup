@@ -1,1 +1,3 @@
 Here be dragons
+
+{{ .Client }}

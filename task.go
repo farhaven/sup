@@ -23,8 +23,8 @@ func (t *CommandTask) Run() string {
 	return t.run
 }
 
-func (t *CommandTask) Input() (io.Reader, error) {
-	return t.input, nil
+func (t *CommandTask) Input() io.Reader {
+	return t.input
 }
 
 func (t *CommandTask) Clients() []Client {
@@ -45,9 +45,13 @@ func (t *TemplateTask) Run() string {
 	return "cat > " + t.dst
 }
 
-func (t *TemplateTask) Input() (io.Reader, error) {
+func (t *TemplateTask) InputForClient(c Client) (io.Reader, error) {
 	var buffer bytes.Buffer
-	if err := t.tmpl.Execute(&buffer, nil /* context */); err != nil {
+	context := struct{
+		Client Client
+		Vars map[string]interface{}
+	}{c, nil}
+	if err := t.tmpl.Execute(&buffer, context); err != nil {
 		return nil, err
 	}
 	return &buffer, nil
@@ -63,7 +67,6 @@ func (t *TemplateTask) TTY() bool {
 
 type Task interface {
 	Run() string
-	Input() (io.Reader, error)
 	Clients() []Client
 	TTY() bool
 }
