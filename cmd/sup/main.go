@@ -14,7 +14,7 @@ import (
 
 	"github.com/mikkeloscar/sshconfig"
 	"github.com/pkg/errors"
-	"github.com/pressly/sup"
+	"github.com/farhaven/sup"
 )
 
 var (
