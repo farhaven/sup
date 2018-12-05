@@ -327,6 +327,14 @@ func NewSupfile(data []byte) (*Supfile, error) {
 		fallthrough
 
 	case "0.4", "0.5":
+		for _, cmd := range conf.Commands.cmds {
+			if cmd.Template.Src != "" || cmd.Template.Dst != "" || cmd.Template.Vars != "" {
+				return nil, ErrMustUpdate{"command.template is not supported in Supfile v" + conf.Version}
+			}
+		}
+		fallthrough
+
+	case "0.6":
 
 	default:
 		return nil, ErrUnsupportedSupfileVersion{"unsupported Supfile version " + conf.Version}
