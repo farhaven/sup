@@ -164,10 +164,14 @@ func (sup *Stackup) Run(network *Network, envVars EnvList, commands ...*Command)
 			}
 
 			// Copy over task's STDIN.
-			if task.Input() != nil {
+			input, err := task.Input()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, "input failed"))
+			}
+			if input != nil {
 				go func() {
 					writer := io.MultiWriter(writers...)
-					_, err := io.Copy(writer, task.Input())
+					_, err := io.Copy(writer, input)
 					if err != nil && err != io.EOF {
 						fmt.Fprintf(os.Stderr, "%v", errors.Wrap(err, "copying STDIN failed"))
 					}

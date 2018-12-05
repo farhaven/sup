@@ -23,8 +23,8 @@ func (t *CommandTask) Run() string {
 	return t.run
 }
 
-func (t *CommandTask) Input() io.Reader {
-	return t.input
+func (t *CommandTask) Input() (io.Reader, error) {
+	return t.input, nil
 }
 
 func (t *CommandTask) Clients() []Client {
@@ -36,16 +36,21 @@ func (t *CommandTask) TTY() bool {
 }
 
 type TemplateTask struct {
-	input io.Reader
+	tmpl *template.Template
+	dst string
 	clients []Client
 }
 
 func (t *TemplateTask) Run() string {
-	return ""
+	return "cat > " + t.dst
 }
 
-func (t *TemplateTask) Input() *io.Reader {
-	return nil
+func (t *TemplateTask) Input() (io.Reader, error) {
+	var buffer bytes.Buffer
+	if err := t.tmpl.Execute(&buffer, nil /* context */); err != nil {
+		return nil, err
+	}
+	return &buffer, nil
 }
 
 func (t *TemplateTask) Clients() []Client {
@@ -58,7 +63,7 @@ func (t *TemplateTask) TTY() bool {
 
 type Task interface {
 	Run() string
-	Input() io.Reader
+	Input() (io.Reader, error)
 	Clients() []Client
 	TTY() bool
 }
@@ -134,9 +139,9 @@ func (sup *Stackup) createTasks(cmd *Command, clients []Client, env string) ([]T
 			return nil, errors.Wrap(err, "can't parse template")
 		}
 
-		task := CommandTask{
-			run:   "cat > " + cmd.Template.Dst,
-			input: &buffer,
+		task := TemplateTask{
+			tmpl: tmpl,
+			dst: cmd.Template.Dst,
 		}
 
 		if cmd.Serial > 0 {
